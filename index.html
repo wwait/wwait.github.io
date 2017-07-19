@@ -35,7 +35,256 @@
 2：圆筒检测型：通过数学方法来解决
 
 
-在入门学习的时候通过视频教程做出来了一个游戏，当时就觉得这个还是很简单的，但是其实用Unity开发并没有那么的容易，因为每一个组件都是需要花大量时间去学习，才能说做到运用自如，像我之前只是看教程的结果就是当到我自己做的时候，我并不知道要调哪一些参数，所以在这一块我缺乏对其细致的学习
+<p>在软件入门学习的时候通过视频教程做出来了一个游戏，当时就觉得这个还是很简单的，但是其实用Unity开发并没有那么的容易，因为每一个组件都是需要花大量时间去学习，才能说做到运用自如，像我之前只是看教程的结果就是当到我自己做的时候，我并不知道要调哪一些参数，所以在这一块我缺乏对其细致的学习
 
-对之后的学习：
-*结合项目对这个软件的我经常需要用到的组件进行细致的学习1：场地的搭建（室内）2：相机的灵活控制 3:对于路径规划的学习 4：骨骼系统的学习 5：还需要对3d数学进行一些学习
+<p>对之后的学习：
+<p>*结合项目对这个软件的我经常需要用到的组件进行细致的学习1：场地的搭建（室内）2：相机的灵活控制 3:对于路径规划的学习 4：骨骼系统的学习 5：还需要对3d数学进行一些学习
+<p>Shader
+OpenGL  GLSL
+DirectX   HSSL
+CG跨平台
+UnityShader
+1.表面着色器 surface shader 被封装过
+2.顶点/片元着色器 vertex/fragment shader 比较基本
+3.固定函数着色器 //弃用了
+框架
+Shader "Custom/ww"{//命名没有要求意思为路径
+//没有命令着色为紫色
+	properties{
+		//属性
+	}
+	SubShader{
+		//可以有很多个 显卡运行效果的时候
+		//从第一个SubShader里面的效果都可以实现 
+		//那么就是用第一个SubShader里面的效果
+		//至少有一个Pass块
+		Pass{
+		CGPROGRAM
+		//使用CG编写
+		ENDCG
+		
+		}
+	}
+	FallBack "Standard"//后备方案 以上效果都不能实现
+
+}
+属性
+	    _Color("Color",color)=(1,1,1,1)
+		_Vector("Vector",Vector)=(1,2,3,4)
+		_Int("Int",Int)=1515
+		_Float("Float",Float)=4.5
+		_Range("Range",Range(1,11))=6
+		_2D("texture2",2D)="white"{}
+		_Cube("cube",Cube)="white"{}
+		_3D("texture",3D)="black"{}
+在subshader的对应
+float4 _Color; // float half fixed 三个可以互换 区别再说
+		float4 _Vector;
+		float _Int;
+		float _Range;
+		float4 _Float;
+		sampler2D _2D;
+		samplerCube _Cube;
+		sampler3D _3D;
+
+Pass{
+			CGPROGRAM
+			//申明了顶点函数的函数名
+			//完成顶点坐标从空间模型到剪裁空间的转换 从游戏空间到相机视野
+			#pragma vertex vert 
+			//片元函数
+			//返回模型对应的屏幕上的每一个像素的颜色值
+			float4 vert(float4 V:POSITION):SV_POSITION{//通过语义告诉系统，我这个参数是拿来干什么的，比如POSITION就是告诉系统我要系统坐标
+			//SV_POSITION这个语义就是用来解释说明返回值，意思是返回值是剪裁空间下的顶点坐标
+				return UnityObjectToClipPos( V);
+			}
+			#pragma fragment frag
+			fixed4 frag():SV_Target{
+				return float4(0.5,1,1,1);
+			}
+			ENDCG
+		}
+SubShader{
+		Pass{
+			CGPROGRAM
+			//申明了顶点函数的函数名
+			//完成顶点坐标从空间模型到剪裁空间的转换 从游戏空间到相机视野
+			#pragma vertex vert 
+			//片元函数
+			//返回模型对应的屏幕上的每一个像素的颜色值
+			#pragma fragment frag
+
+			//application to vertex
+			struct a2v{
+				float4 vertex:POSITION;//告诉Unity把模型空间下的顶点坐标填充给vertex
+				float3 normal:NORMAL;//告诉Unity把空间模型下的法线方向填充给normal
+				float4 texcoord :TEXCOORD0;//告诉Unity把第一套纹理坐标填充给texcoord
+				};
+
+			struct v2f{
+				float4 position:SV_POSITION;
+				float3 temp:COLOR0;
+			    };
+
+
+			v2f vert(a2v v){
+				v2f f;
+				f.position=UnityObjectToClipPos(v.vertex);
+				f.temp =v.normal;
+				return f;
+			}
+			/*float4 vert(float4 V:POSITION):SV_POSITION{//通过语义告诉系统，我这个参数是拿来干什么的，比如POSITION就是告诉系统我要系统坐标
+			//SV_POSITION这个语义就是用来解释说明返回值，意思是返回值是剪裁空间下的顶点坐标
+				return UnityObjectToClipPos( V);
+			}*/
+			fixed4 frag(v2f f):SV_Target{
+				return fixed4(f.temp,1);
+			}
+			ENDCG
+		}
+}
+从应用程序传递到顶点函数的语义要那些application to vertex
+POSITION 顶点坐标（模型空间下）
+NORMAL 法线（模型空间下）
+TANGENT 切线（模型空间下）
+TEXCOORD0~n 纹理坐标	
+COLOR 顶点颜色
+从顶点函数传递给片元函数的时候可以使用使用的语义
+SV_POSITION 剪裁空间中的顶点坐标（一般是系统直接使用）
+COLOR0 可以传递一组值 4个值
+COLOR1 可以传递一组值 4个值
+TEXCOORD0~7 传递纹理坐标
+片元函数传给系统
+SV_TARGET 颜色值
+
+什么是光照模型
+就是一个计算公式算法
+
+标准光照模型
+在标准光照模型里面，我们把进入摄像机的光分为以下四个部分
+高光反射 
+
+Blinn 光照模型
+Specular =直射光 * pow(max(0,cos角度），10）角度是反射光方向和视野方向夹角
+改进 blinn-phong 角度法线和x之间的的夹角 x:平行光和视野方向的平分线
+Shader "Custom/ww1" {
+	Properties{
+		_Diffuse("diffuse color",COLOR)=(1,1,1,1)//自身光
+		_Glass("Glass",range(8,200)) =10//高光区域参数
+		_Specular("specular",COLOR) =(1,1,1,1)//高光颜色参数
+	}
+	SubShader{
+		Pass{
+			Tags{"LightMode"="ForwardBase"}
+			CGPROGRAM
+			#include"Lighting.cginc"//取得第一个直射光的颜色_LightColor0 第一个直射光的位置_WorldSpaceLightPos0
+			#pragma vertex vert 
+			#pragma fragment frag
+			fixed4 _Diffuse;
+			int  _Glass;
+			fixed4 _Specular;
+			struct a2v{
+				float4 vertex:POSITION;//告诉Unity把模型空间下的顶点坐标填充给vertex
+				float3 normal:NORMAL ;//告诉Unity把模型空间下的法线坐标填充给normal
+				};
+			struct v2f{
+				float4 position:SV_POSITION;
+				float3 worldnormal : TEXCOORD0;
+				float3 worldvertex : TEXCOORD1;
+			    };
+			v2f vert(a2v v){
+				v2f f;
+				f.position=UnityObjectToClipPos(v.vertex);
+				f.worldnormal = mul(v.normal,(float3x3) unity_WorldToObject);
+				f.worldvertex = mul(v.vertex,unity_WorldToObject).xyz;
+				return f;
+			}
+			fixed4 frag(v2f f):SV_Target{
+				fixed3 ambient =UNITY_LIGHTMODEL_AMBIENT.rgb;
+				float3 normalDir =f.worldnormal;//模型与世界空间的转换
+				fixed3 lightDir = normalize(_WorldSpaceLightPos0.xyz);//对于每个顶点来说 光的位置就是光的方向
+				float halfLamber = dot(normalDir,lightDir) * 0.5 + 0.5;
+				fixed3 diffuse = _LightColor0.rgb * halfLamber *_Diffuse.rgb;//取得漫反射颜色
+
+				fixed3 reflectDir = normalize(reflect(-lightDir,normalDir));//反射光的方向
+				fixed3 viewDir = normalize( _WorldSpaceCameraPos.xyz - f.worldvertex ) ;//视野方向 等于相机位置 - 物体坐标位置（模型空间到世界空间的转换）
+				fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow ( max( dot(reflectDir,viewDir) , 0), _Glass);
+				fixed3 temp  = diffuse + ambient + specular;
+				return fixed4(temp,1);
+			}
+			ENDCG
+		}
+	}
+	Fallback "Standard"
+}
+
+自发光
+环境光
+漫反射：Diffuse =直射光颜色 * max(0, cos夹角（光和法线的夹角）)
+Shader "Custom/ww1" {
+	Properties{
+		_Diffuse("diffuse color",COLOR)=(1,1,1,1)//自身光属性定义
+	}
+	SubShader{
+		Pass{
+			Tags{"LightMode"="ForwardBase"}
+			CGPROGRAM
+			#include"Lighting.cginc"//取得第一个直射光的颜色 第一个直射光的位置——WorldSpaceLightPos0
+			#pragma vertex vert 
+			#pragma fragment frag
+			fixed4 _Diffuse;//申明属性
+			struct a2v{
+				float4 vertex:POSITION;//告诉Unity把模型空间下的顶点坐标填充给vertex
+				float3 normal:NORMAL;
+				};
+			struct v2f{
+				float4 position:SV_POSITION;
+				fixed3 color :COLOR;
+			    };
+			v2f vert(a2v v){
+				v2f f;
+				f.position=UnityObjectToClipPos(v.vertex);
+				fixed3 ambient =UNITY_LIGHTMODEL_AMBIENT.rgb;
+				float3 normalDir = mul(v.normal,(float3x3) unity_WorldToObject);//环境光
+				fixed3 lightDir = normalize(_WorldSpaceLightPos0.xyz);//对于每个顶点来说 光的位置就是光的方向
+				fixed3 diffuse = _LightColor0.rgb * max(0,dot(normalDir,lightDir)) *_Diffuse.rgb;//取得漫反射颜色 + 混合*自身光
+				f.color =diffuse+ambient ;//叠加环境光
+				return f;
+			}
+			fixed4 frag(v2f f):SV_Target{
+				return fixed4(f.color,1);
+			}
+			ENDCG
+		}
+	}
+	Fallback "Standard"
+}
+
+Tags{“LightMode”=”ForwardBase”}
+只有正确定义了LightMode才能得到一些Unity的光照变量
+normalize（）用来把一个向量单位化 max dot 
+//矩阵
+UNITY_MATRIX_MVP 用来把一个坐标从空间模型转换到剪裁空间
+_World2Object 从世界空间转换到模型空间
+
+UnityCG.cginc中一些常用的函数
+	
+	//摄像机方向（视角方向）
+	float3 WorldSpaceViewDir(float4 v)  	根据模型空间中的顶点坐标 得到 （世界空间）从这个点到摄像机的观察方向
+	float3 UnityWorldSpaceViewDir(float4 v) 世界空间中的顶点坐标==》世界空间从这个点到摄像机的观察方向
+	float3 ObjSpaceViewDir(float4 v) 		模型空间中的顶点坐标==》模型空间从这个点到摄像机的观察方向
+	//光源方向
+	float3 WorldSpaceLightDir(float4 v) 	模型空间中的顶点坐标==》世界空间中从这个点到光源的方向
+	float3 UnityWorldSpaceLightDir(float4 v) 	世界空间中的顶点坐标==》世界空间中从这个点到光源的方向
+	float3 ObjSpaceLightDir(float4 v) 	模型空间中的顶点坐标==》模型空间中从这个点到光源的方向
+	//方向转换
+	float3 UnityObjectToWorldNormal(float3 norm) 把法线方向 模型空间==》世界空间
+	float3 UnityObjectToWorldDir(float3 dir) 把方向 模型空间=》世界空间
+	float3 UnityWorldToObjectDir(float3 dir) 把方向 世界空间=》模型空间
+
+法线贴图 法线空间
+Pixel =(normal+1）/2
+  <p>Shader真的是入门了，入门之后发现这个世界好大，估计要在入门的这个阶段待上很久很久，接下来需要去看下网上猫都能看得懂的Shader第二部分的具体实现 和官方Unity的一些细节知识点和案例。之后真的还要多查相关资料，还有就是真的要学要英语。还会和英语打很长很长的交道，
+<p>然后就是通过UnityAI算法这本书对人工智能入一下门吧，然后初步计划是完成一个TPS
+<p>真的好辣鸡啊什么都不会什么都还需要去入门。还记得物理组件入门的艰辛，还记得数学无数个三位坐标支配的恐惧。活着真好。
+
